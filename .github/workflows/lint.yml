@@ -63,6 +63,17 @@ jobs:
       #     else
       #       echo "No Python files changed."
       #     fi
+      - name: Run Pytest
+        if: github.event_name == 'pull_request'
+        run: |
+          files=$(git diff --name-status origin/${{ github.event.pull_request.base.ref }}...HEAD | grep -E '^[AM]' | awk '{print $2}' | grep '^tests/.*\.py$' || true)
+
+          if [ -n "$files" ]; then
+            files=$(echo "$files" | tr '\n' ' ')
+            uv run pytest $files || true
+          else
+            echo "No Python files added or modified."
+          fi
 
       - name: Run Pylint
         if: github.event_name == 'pull_request'
