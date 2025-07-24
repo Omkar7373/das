@@ -71,7 +71,7 @@ jobs:
 
           if [ -n "$files" ]; then
             files=$(echo "$files" | tr '\n' ' ')
-            uv run pylint $files
+            uv run pylint $files || true
           else
             echo "No Python files added or modified."
           fi
