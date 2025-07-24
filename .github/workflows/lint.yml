@@ -70,7 +70,7 @@ jobs:
 
           if [ -n "$files" ]; then
             files=$(echo "$files" | tr '\n' ' ')
-            uv run pytest $files || true
+            uv run pytest $files
           else
             echo "No Python files added or modified."
           fi
