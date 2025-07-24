@@ -1,0 +1,22 @@
+[project]
+name = "clsdk"
+version = "0.1.0"
+description = "demo"
+dependencies = [
+    "python-dotenv==1.1.0",
+    "python-multipart==0.0.20",
+    "pyyaml==6.0.2",
+]
+requires-python = ">=3.11"
+
+
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_paths = ["src"]
+addopts = [
+    "-v",
+    "--tb=short",
+    "--strict-markers",
+    "--disable-warnings",
+]
