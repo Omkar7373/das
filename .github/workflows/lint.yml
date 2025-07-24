@@ -1,0 +1,76 @@
+name: Test_Pylint and Pytest Test on client
+
+on:
+  # workflow_call:
+  #   inputs:
+  #     testname:
+  #       type: string
+  #       required: true
+  push:
+    branches: ["main"]
+
+jobs:
+  lint:
+    name: Pylint and Pytest Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+            fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install UV
+        run: |
+          curl -LsSf https://astral.sh/uv/install.sh | sh
+          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+
+      - name: Install dependencies
+        run: |  
+          uv sync
+
+      - name: Install pylint and pytest
+        run: |
+          uv pip install pylint pytest
+
+      # - name: Run Pytest
+      #   run: |
+      #     uv run pytest tests/
+ 
+      # - name: Run Pylint
+      #   run: |
+      #     files=$(git diff --name-status ${{ github.event.before }} ${{ github.sha }} -- 'src/' | grep -E '^[AM]' | awk '{print $2}' | grep '\.py$' || true)
+      #     if [ -n "$files" ]; then
+      #       files=$(echo "$files" | tr '\n' ' ')
+      #       uv run pylint $files
+      #     else
+      #       echo "No Python files changed."
+      #     fi
+      # - name: Run Pylint 
+      #   run: |
+      #     git fetch origin main
+      #     files=$(git diff --name-only origin/main...HEAD | grep '^src/.*\.py$' || true)
+      #     if [ -n "$files" ]; then
+      #       files=$(echo "$files" | tr '\n' ' ')
+      #       uv run pylint $files
+      #     else
+      #       echo "No Python files changed."
+      #     fi
+
+      - name: Run Pylint
+        if: github.event_name == 'pull_request'
+        run: |
+          files=$(git diff --name-status origin/${{ github.event.pull_request.base.ref }}...HEAD | grep -E '^[AM]' | awk '{print $2}' | grep '^src/.*\.py$' || true)
+
+          if [ -n "$files" ]; then
+            files=$(echo "$files" | tr '\n' ' ')
+            uv run pylint $files
+          else
+            echo "No Python files added or modified."
+          fi
+      
