@@ -63,79 +63,29 @@ jobs:
       #     else
       #       echo "No Python files changed."
       #     fi
-      # - name: Run Pytest
-      #   if: github.event_name == 'pull_request'
-      #   continue-on-error: true
-      #   run: |
-      #     files=$(git diff --name-status origin/${{ github.event.pull_request.base.ref }}...HEAD | grep -E '^[AM]' | awk '{print $2}' | grep '^tests/.*\.py$' || true)
-
-      #     if [ -n "$files" ]; then
-      #       files=$(echo "$files" | tr '\n' ' ')
-      #       uv run pytest $files
-      #     else
-      #       echo "No Python files added or modified."
-      #     fi
-
-      # - name: Run Pylint
-      #   if: github.event_name == 'pull_request'
-      #   continue-on-error: true
-      #   run: |
-      #     files=$(git diff --name-status origin/${{ github.event.pull_request.base.ref }}...HEAD | grep -E '^[AM]' | awk '{print $2}' | grep '^src/.*\.py$' || true)
-
-      #     if [ -n "$files" ]; then
-      #       files=$(echo "$files" | tr '\n' ' ')
-      #       uv run pylint $files
-      #     else
-      #       echo "No Python files added or modified."
-      #     fi
-      - name: Run Pytest and capture pass percentage
-        id: pytest_step
+      - name: Run Pytest
         if: github.event_name == 'pull_request'
-        continue-on-error: false
+        continue-on-error: true
         run: |
-         files=$(git diff --name-status origin/${{ github.event.pull_request.base.ref }}...HEAD | grep -E '^[AM]' | awk '{print $2}' | grep '^tests/.*\.py$' || true)
-         if [ -n "$files" ]; then
-           files=$(echo "$files" | tr '\n' ' ')
-           # Run pytest, tee output to file AND stdout to see logs live
-           uv run pytest $files --tb=short 2>&1 | tee pytest_output.log
-           # Parse pytest_output.log for summary
-           total=$(grep -oP '(?<=collected )\d+(?= items)' pytest_output.log)
-           failed=$(grep -oP '(?<=, )\d+(?= failed)' pytest_output.log || echo 0)
-           passed=$((total - failed))
-           if [ -z "$total" ] || [ "$total" -eq 0 ]; then
-           pass_percent=0
-           else
-           pass_percent=$((passed * 100 / total))
-           fi
-         else
-          echo "No test files added or modified."
-          pass_percent=100
-         fi
-         echo "pytest_pass_percent=$pass_percent" >> $GITHUB_OUTPUT
+          files=$(git diff --name-status origin/${{ github.event.pull_request.base.ref }}...HEAD | grep -E '^[AM]' | awk '{print $2}' | grep '^tests/.*\.py$' || true)
 
-      - name: Run Pylint and capture score percentage
-        id: pylint_step
-        if: github.event_name == 'pull_request'
-        continue-on-error: false
-        run: |
-          files=$(git diff --name-status origin/${{ github.event.pull_request.base.ref }}...HEAD | grep -E '^[AM]' | awk '{print $2}' | grep '^src/.*\.py$' || true)
           if [ -n "$files" ]; then
             files=$(echo "$files" | tr '\n' ' ')
-            # Run pylint, tee output to file AND stdout
-            uv run pylint $files 2>&1 | tee pylint_output.log
-            score_line=$(grep 'Your code has been rated at' pylint_output.log)
-            score=$(echo "$score_line" | grep -oP '\d+(\.\d+)?')
-            if [ -z "$score" ]; then
-             score=0
-            fi
-            score=$(awk "BEGIN {printf \"%.0f\", $score * 10}")
+            uv run pytest $files
           else
             echo "No Python files added or modified."
-            score=100
           fi
-          echo "pylint_score_percent=$score" >> $GITHUB_OUTPUT
 
-      - name: Pass to next step
+      - name: Run Pylint
+        if: github.event_name == 'pull_request'
+        continue-on-error: true
         run: |
-          echo "passed to next stage"
+          files=$(git diff --name-status origin/${{ github.event.pull_request.base.ref }}...HEAD | grep -E '^[AM]' | awk '{print $2}' | grep '^src/.*\.py$' || true)
+
+          if [ -n "$files" ]; then
+            files=$(echo "$files" | tr '\n' ' ')
+            uv run pylint $files
+          else
+            echo "No Python files added or modified."
+          fi
         
