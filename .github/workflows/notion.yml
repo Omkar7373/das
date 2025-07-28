@@ -1,0 +1,22 @@
+name: nogfdvcicd
+
+on:
+  workflow_dispatch:
+    inputs:
+      push:
+        type: boolean
+        description: Whether to push the image to the registry
+        default: false
+        required: false
+  pull_request:
+    branches: ["main"]
+    paths:
+      - 'stubs/notion/**'
+      - '.github/workflows/lint.yml'
+
+jobs:
+  test:
+    name: Run Pylint and Pytest Tests
+    uses: ./.github/workflows/lint.yml
+    with:
+      testname: notion      
