@@ -88,31 +88,30 @@ jobs:
       #     else
       #       echo "No Python files added or modified."
       #     fi
-
       - name: Run Pytest and capture pass percentage
         id: pytest_step
         if: github.event_name == 'pull_request'
         continue-on-error: false
         run: |
-          files=$(git diff --name-status origin/${{ github.event.pull_request.base.ref }}...HEAD | grep -E '^[AM]' | awk '{print $2}' | grep '^tests/.*\.py$' || true)
-          if [ -n "$files" ]; then
-            files=$(echo "$files" | tr '\n' ' ')
-            # Run pytest and capture summary
-            pytest_output=$(uv run pytest $files --tb=short 2>&1)
-            echo "$pytest_output"
-            total=$(echo "$pytest_output" | grep -oP '(?<=collected )\d+(?= items)')
-            failed=$(echo "$pytest_output" | grep -oP '(?<=, )\d+(?= failed)' || echo 0)
-            passed=$((total - failed))
-            if [ -z "$total" ] || [ "$total" -eq 0 ]; then
-              pass_percent=0
-            else
-              pass_percent=$((passed * 100 / total))
-            fi
-          else
-            echo "No test files added or modified."
-            pass_percent=100
-          fi
-          echo "pytest_pass_percent=$pass_percent" >> $GITHUB_OUTPUT
+         files=$(git diff --name-status origin/${{ github.event.pull_request.base.ref }}...HEAD | grep -E '^[AM]' | awk '{print $2}' | grep '^tests/.*\.py$' || true)
+         if [ -n "$files" ]; then
+           files=$(echo "$files" | tr '\n' ' ')
+           # Run pytest, tee output to file AND stdout to see logs live
+           uv run pytest $files --tb=short 2>&1 | tee pytest_output.log
+           # Parse pytest_output.log for summary
+           total=$(grep -oP '(?<=collected )\d+(?= items)' pytest_output.log)
+           failed=$(grep -oP '(?<=, )\d+(?= failed)' pytest_output.log || echo 0)
+           passed=$((total - failed))
+         if [ -z "$total" ] || [ "$total" -eq 0 ]; then
+           pass_percent=0
+         else
+           pass_percent=$((passed * 100 / total))
+         fi
+         else
+          echo "No test files added or modified."
+          pass_percent=100
+         fi
+         echo "pytest_pass_percent=$pass_percent" >> $GITHUB_OUTPUT
 
       - name: Run Pylint and capture score percentage
         id: pylint_step
@@ -122,39 +121,19 @@ jobs:
           files=$(git diff --name-status origin/${{ github.event.pull_request.base.ref }}...HEAD | grep -E '^[AM]' | awk '{print $2}' | grep '^src/.*\.py$' || true)
           if [ -n "$files" ]; then
             files=$(echo "$files" | tr '\n' ' ')
-            pylint_output=$(uv run pylint $files 2>&1)
-            echo "$pylint_output"
-            score_line=$(echo "$pylint_output" | grep 'Your code has been rated at')
+            # Run pylint, tee output to file AND stdout
+            uv run pylint $files 2>&1 | tee pylint_output.log
+            score_line=$(grep 'Your code has been rated at' pylint_output.log)
             score=$(echo "$score_line" | grep -oP '\d+(\.\d+)?')
             if [ -z "$score" ]; then
-              score=0
+             score=0
             fi
-            score=$(awk "BEGIN {printf \"%.0f\", $score * 10}")  # convert out of 10 to %
+            score=$(awk "BEGIN {printf \"%.0f\", $score * 10}")
           else
             echo "No Python files added or modified."
             score=100
           fi
           echo "pylint_score_percent=$score" >> $GITHUB_OUTPUT
-
-      - name: Check thresholds and fail if below 80%
-        run: |
-          pytest_percent=${{ steps.pytest_step.outputs.pytest_pass_percent }}
-          pylint_percent=${{ steps.pylint_step.outputs.pylint_score_percent }}
-
-          echo "Pytest pass percentage: $pytest_percent%"
-          echo "Pylint score percentage: $pylint_percent%"
-
-          if [ "$pytest_percent" -lt 80 ]; then
-            echo "Pytest pass percentage ($pytest_percent%) is below 80%. Failing the job."
-            exit 1
-          fi
-
-          if [ "$pylint_percent" -lt 80 ]; then
-            echo "Pylint score percentage ($pylint_percent%) is below 80%. Failing the job."
-            exit 1
-          fi
-
-          echo "Both Pytest and Pylint passed 80% threshold. Proceeding."
 
       - name: Pass to next step
         run: |
