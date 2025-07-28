@@ -102,11 +102,11 @@ jobs:
            total=$(grep -oP '(?<=collected )\d+(?= items)' pytest_output.log)
            failed=$(grep -oP '(?<=, )\d+(?= failed)' pytest_output.log || echo 0)
            passed=$((total - failed))
-         if [ -z "$total" ] || [ "$total" -eq 0 ]; then
+           if [ -z "$total" ] || [ "$total" -eq 0 ]; then
            pass_percent=0
-         else
+           else
            pass_percent=$((passed * 100 / total))
-         fi
+           fi
          else
           echo "No test files added or modified."
           pass_percent=100
