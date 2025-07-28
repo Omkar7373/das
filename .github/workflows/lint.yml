@@ -92,7 +92,6 @@ jobs:
       - name: Run Pylint
         id: pylint
         if: github.event_name == 'pull_request'
-        continue-on-error: false
         run: |
           files=$(git diff --name-status origin/${{ github.event.pull_request.base.ref }}...HEAD | grep -E '^[AM]' | awk '{print $2}' | grep '^src/.*\.py$' || true)
           if [ -n "$files" ]; then
@@ -120,7 +119,6 @@ jobs:
       - name: Run Pytest with Coverage
         id: pytest
         if: github.event_name == 'pull_request'
-        continue-on-error: false
         run: |
           files=$(git diff --name-status origin/${{ github.event.pull_request.base.ref }}...HEAD | grep -E '^[AM]' | awk '{print $2}' | grep '^tests/.*\.py$' || true)
           if [ -n "$files" ]; then
