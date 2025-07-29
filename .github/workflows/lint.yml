@@ -80,7 +80,7 @@ jobs:
         if: github.event_name == 'pull_request'
         continue-on-error: true
         run: |
-          files=$(git diff --name-status origin/${{ github.event.pull_request.base.ref }}...HEAD | grep -E '^[AM]' | awk '{print $2}' | grep '^src/.*\.py|lib/.*\.py)$' || true)
+          files=$(git diff --name-status origin/${{ github.event.pull_request.base.ref }}...HEAD | grep -E '^[AM]' | awk '{print $2}' | grep -E "^(src/.*\.py|lib/.*\.py)$" || true)
 
           if [ -n "$files" ]; then
             files=$(echo "$files" | tr '\n' ' ')
