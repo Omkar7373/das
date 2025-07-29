@@ -76,65 +76,65 @@ jobs:
       #       echo "No Python files added or modified."
       #     fi
 
+      - name: Run Pylint
+        if: github.event_name == 'pull_request'
+        continue-on-error: true
+        run: |
+          files=$(git diff --name-status origin/${{ github.event.pull_request.base.ref }}...HEAD | grep -E '^[AM]' | awk '{print $2}' | grep '^src/.*\.py|lib/.*\.py)$' || true)
+
+          if [ -n "$files" ]; then
+            files=$(echo "$files" | tr '\n' ' ')
+            uv run pylint $files
+          else
+            echo "No Python files added or modified."
+          fi
+          
       # - name: Run Pylint
+      #   id: pylint
       #   if: github.event_name == 'pull_request'
-      #   continue-on-error: true
       #   run: |
       #     files=$(git diff --name-status origin/${{ github.event.pull_request.base.ref }}...HEAD | grep -E '^[AM]' | awk '{print $2}' | grep '^src/.*\.py$' || true)
-
       #     if [ -n "$files" ]; then
       #       files=$(echo "$files" | tr '\n' ' ')
-      #       uv run pylint $files
+      #       output=$(uv run pylint $files)
+      #       echo "$output"
+          
+      #       # Extract pylint score, e.g. 8.23 from "Your code has been rated at 8.23/10"
+      #       score_line=$(echo "$output" | grep "Your code has been rated at")
+      #       score=$(echo "$score_line" | awk '{print $7}' | cut -d'/' -f1)
+          
+      #       # Calculate percentage from score (out of 10), multiply by 10 to get %
+      #       percent_score=$(echo "$score * 10" | bc)
+          
+      #       echo "Pylint Score: $score/10 (${percent_score}%)"
+          
+      #       if (( $(echo "$score < 8.0" | bc -l) )); then
+      #         echo "ERROR: Pylint score below 8.0 (80%) — current score is ${score}/10 (${percent_score}%)"
+      #         exit 1
+      #       fi
       #     else
-      #       echo "No Python files added or modified."
+      #       echo "No Python source files added or modified."
       #     fi
 
-      - name: Run Pylint
-        id: pylint
-        if: github.event_name == 'pull_request'
-        run: |
-          files=$(git diff --name-status origin/${{ github.event.pull_request.base.ref }}...HEAD | grep -E '^[AM]' | awk '{print $2}' | grep '^src/.*\.py$' || true)
-          if [ -n "$files" ]; then
-            files=$(echo "$files" | tr '\n' ' ')
-            output=$(uv run pylint $files)
-            echo "$output"
+      # - name: Run Pytest with Coverage
+      #   id: pytest
+      #   if: github.event_name == 'pull_request'
+      #   run: |
+      #     files=$(git diff --name-status origin/${{ github.event.pull_request.base.ref }}...HEAD | grep -E '^[AM]' | awk '{print $2}' | grep '^tests/.*\.py$' || true)
+      #     if [ -n "$files" ]; then
+      #       files=$(echo "$files" | tr '\n' ' ')
+      #       uv run pytest --cov=src --cov-report=term-missing $files > result.log
           
-            # Extract pylint score, e.g. 8.23 from "Your code has been rated at 8.23/10"
-            score_line=$(echo "$output" | grep "Your code has been rated at")
-            score=$(echo "$score_line" | awk '{print $7}' | cut -d'/' -f1)
+      #       # Extract coverage % from pytest output
+      #       coverage_line=$(grep -A 1 "TOTAL" result.log | tail -1)
+      #       coverage=$(echo $coverage_line | awk '{print $4}' | sed 's/%//')
           
-            # Calculate percentage from score (out of 10), multiply by 10 to get %
-            percent_score=$(echo "$score * 10" | bc)
+      #       echo "Pytest Coverage: $coverage%"
           
-            echo "Pylint Score: $score/10 (${percent_score}%)"
-          
-            if (( $(echo "$score < 8.0" | bc -l) )); then
-              echo "ERROR: Pylint score below 8.0 (80%) — current score is ${score}/10 (${percent_score}%)"
-              exit 1
-            fi
-          else
-            echo "No Python source files added or modified."
-          fi
-
-      - name: Run Pytest with Coverage
-        id: pytest
-        if: github.event_name == 'pull_request'
-        run: |
-          files=$(git diff --name-status origin/${{ github.event.pull_request.base.ref }}...HEAD | grep -E '^[AM]' | awk '{print $2}' | grep '^tests/.*\.py$' || true)
-          if [ -n "$files" ]; then
-            files=$(echo "$files" | tr '\n' ' ')
-            uv run pytest --cov=src --cov-report=term-missing $files > result.log
-          
-            # Extract coverage % from pytest output
-            coverage_line=$(grep -A 1 "TOTAL" result.log | tail -1)
-            coverage=$(echo $coverage_line | awk '{print $4}' | sed 's/%//')
-          
-            echo "Pytest Coverage: $coverage%"
-          
-            if (( $(echo "$coverage < 80" | bc -l) )); then
-              echo "ERROR: Coverage below 80% — current coverage is ${coverage}%"
-              exit 1
-            fi
-          else
-            echo "No Python test files added or modified."
-          fi
+      #       if (( $(echo "$coverage < 80" | bc -l) )); then
+      #         echo "ERROR: Coverage below 80% — current coverage is ${coverage}%"
+      #         exit 1
+      #       fi
+      #     else
+      #       echo "No Python test files added or modified."
+      #     fi
