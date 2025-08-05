@@ -43,7 +43,7 @@ jobs:
       - name: Run Pylint
         if: github.event_name == 'pull_request'
         continue-on-error: false
-        working-directory: stubs/salesfoce/
+        # working-directory: stubs/salesfoce/
         run: |
           files=$(git diff --name-status origin/${{ github.event.pull_request.base.ref }}...HEAD | grep -E '^[AM]' | awk '{print $2}' | grep -E "^(stubs/salesfoce/.*\.py|libs/.*\.py)$" || true)
 
