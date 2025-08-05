@@ -38,40 +38,31 @@ jobs:
         run: |
           uv pip install pylint pytest
 
-      # - name: Run Pytest
-      #   run: |
-      #     uv run pytest tests/
- 
-      # - name: Run Pylint
-      #   run: |
-      #     files=$(git diff --name-status ${{ github.event.before }} ${{ github.sha }} -- 'src/' | grep -E '^[AM]' | awk '{print $2}' | grep '\.py$' || true)
-      #     if [ -n "$files" ]; then
-      #       files=$(echo "$files" | tr '\n' ' ')
-      #       uv run pylint $files
-      #     else
-      #       echo "No Python files changed."
-      #     fi
-      # - name: Run Pylint 
-      #   run: |
-      #     git fetch origin main
-      #     files=$(git diff --name-only origin/main...HEAD | grep '^src/.*\.py$' || true)
-      #     if [ -n "$files" ]; then
-      #       files=$(echo "$files" | tr '\n' ' ')
-      #       uv run pylint $files
-      #     else
-      #       echo "No Python files changed."
-      #     fi
-
       - name: Run Pylint
         if: github.event_name == 'pull_request'
-        continue-on-error: true
+        continue-on-error: false
+        working-directory: stubs/salesfoce/
         run: |
-          files=$(git diff --name-status origin/${{ github.event.pull_request.base.ref }}...HEAD | grep -E '^[AM]' | awk '{print $2}' | grep '^src/.*\.py$' || true)
+          files=$(git diff --name-status origin/${{ github.event.pull_request.base.ref }}...HEAD | grep -E '^[AM]' | awk '{print $2}' | grep -E "^(stubs/salesfoce/.*\.py|libs/.*\.py)$" || true)
 
           if [ -n "$files" ]; then
             files=$(echo "$files" | tr '\n' ' ')
             uv run pylint $files
           else
-            echo "No Python files added or modified."
+            echo "No Python files added or modified in stubs/salesfoce/ or libs/ directories."
           fi
+
+      # - name: Run Pytest
+      #   if: github.event_name == 'pull_request'
+      #   continue-on-error: false
+      #   working-directory: stubs/${{inputs.testname}}/
+      #   run: |
+      #     files=$(git diff --name-status origin/${{ github.event.pull_request.base.ref }}...HEAD | grep -E '^[AM]' | awk '{print $2}' | grep '^stubs/${{inputs.testname}}/tests/.*\.py$' || true)
+
+      #     if [ -n "$files" ]; then
+      #       files=$(echo "$files" | tr '\n' ' ')
+      #       uv run pytest $files
+      #     else
+      #       echo "No Python files added or modified."
+      #     fi
       
