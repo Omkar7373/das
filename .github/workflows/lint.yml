@@ -13,58 +13,54 @@ on:
 
 jobs:
   lint:
-    name: Pylint and Pytest Test
+    name: Pylint and Pytest Test on ${{inputs.testname}}
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-            fetch-depth: 0
-
+          fetch-depth: 0
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-
       - name: Install UV
         run: |
           curl -LsSf https://astral.sh/uv/install.sh | sh
           echo "$HOME/.cargo/bin" >> $GITHUB_PATH
-
       - name: Install dependencies
-        run: |  
+        run: |
+          cd stubs/${{inputs.testname}}/
           uv sync
-
       - name: Install pylint and pytest
         run: |
-          uv pip install pylint pytest
-
+          # Install pylint globally using uv tool
+          uv tool install pylint
+          # Install pytest as dev dependency in the stub project
+          cd stubs/${{inputs.testname}}/
+          uv add --dev pytest
       - name: Run Pylint
         if: github.event_name == 'pull_request'
         continue-on-error: false
-        # working-directory: stubs/salesfoce/
         run: |
-          files=$(git diff --name-status origin/${{ github.event.pull_request.base.ref }}...HEAD | grep -E '^[AM]' | awk '{print $2}' | grep -E "^(stubs/salesfoce/.*\.py|libs/.*\.py)$" || true)
-
+          files=$(git diff --name-status origin/${{ github.event.pull_request.base.ref }}...HEAD | grep -E '^[AM]' | awk '{print $2}' | grep -E "^(stubs/${{inputs.testname}}/src/.*\.py|libs/.*\.py)$" || true)
           if [ -n "$files" ]; then
             files=$(echo "$files" | tr '\n' ' ')
-            uv run pylint $files
+            # Run pylint from repo root so it can access both stubs and libs
+            uv tool run pylint $files
           else
-            echo "No Python files added or modified in stubs/salesfoce/ or libs/ directories."
+            echo "No Python files added or modified in stubs/${{inputs.testname}}/src or libs/ directories."
           fi
-
-      # - name: Run Pytest
-      #   if: github.event_name == 'pull_request'
-      #   continue-on-error: false
-      #   working-directory: stubs/${{inputs.testname}}/
-      #   run: |
-      #     files=$(git diff --name-status origin/${{ github.event.pull_request.base.ref }}...HEAD | grep -E '^[AM]' | awk '{print $2}' | grep '^stubs/${{inputs.testname}}/tests/.*\.py$' || true)
-
-      #     if [ -n "$files" ]; then
-      #       files=$(echo "$files" | tr '\n' ' ')
-      #       uv run pytest $files
-      #     else
-      #       echo "No Python files added or modified."
-      #     fi
+      - name: Run Pytest
+        if: github.event_name == 'pull_request'
+        continue-on-error: false
+        run: |
+          cd stubs/${{inputs.testname}}/
+          files=$(git diff --name-status origin/${{ github.event.pull_request.base.ref }}...HEAD | grep -E '^[AM]' | awk '{print $2}' | grep '^stubs/${{inputs.testname}}/tests/.*\.py || true)
+          if [ -n "$files" ]; then
+            files=$(echo "$files" | tr '\n' ' ')
+            uv run pytest $files
+          else
+            echo "No Python files added or modified."
+          fi
       
