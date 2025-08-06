@@ -1,0 +1,14 @@
+name: MCP Salesforce CI/CD
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: ["main"]
+
+jobs:
+  test:
+    name: Run Pylint and Pytest Tests
+    uses: ./.github/workflows/pylint_and_pytest.yml
+    with:
+      testname: salesforce
+      
